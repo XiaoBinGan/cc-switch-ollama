@@ -15,7 +15,7 @@
 
 | 平台 | 下载 |
 |------|------|
-| 🍎 macOS (Apple Silicon) | [Releases](../../releases/latest) |
+| 🍎 macOS (Apple Silicon) | [v3.16.2](https://github.com/XiaoBinGan/cc-switch-ollama/releases/tag/v3.16.2) |
 | 🪟 Windows (x64) | [Releases](../../releases/latest) |
 
 ## 快速上手
