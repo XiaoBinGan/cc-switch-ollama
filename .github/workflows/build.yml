@@ -34,16 +34,10 @@ jobs:
 
       - name: Rename app
         run: |
-          cat src-tauri/tauri.conf.json | python3 -c "
-          import sys, json
-          d = json.load(sys.stdin)
-          d['productName'] = 'CC Switch Ollama'
-          d['identifier'] = 'com.ccswitch.ollama'
-          print(json.dumps(d, indent=2, ensure_ascii=False))
-          " > t.json && mv t.json src-tauri/tauri.conf.json
+          python3 -c "import json; d=json.load(open('src-tauri/tauri.conf.json')); d['productName']='CC Switch Ollama'; json.dump(d, open('src-tauri/tauri.conf.json','w'), indent=2, ensure_ascii=False)"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build macOS
         run: pnpm tauri build --target aarch64-apple-darwin
@@ -81,20 +75,11 @@ jobs:
 
       - name: Rename app
         run: |
-          python -c "
-          import json
-          with open('src-tauri/tauri.conf.json') as f:
-              d = json.load(f)
-          d['productName'] = 'CC Switch Ollama'
-          d['identifier'] = 'com.ccswitch.ollama'
-          with open('t.json','w') as f:
-              json.dump(d, f, indent=2, ensure_ascii=False)
-          "
-          move /Y t.json src-tauri\tauri.conf.json
-        shell: cmd
+          python -c "import json; d=json.load(open('src-tauri/tauri.conf.json')); d['productName']='CC Switch Ollama'; json.dump(d, open('src-tauri/tauri.conf.json','w'), indent=2, ensure_ascii=False)"
+        shell: bash
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build Windows
         run: pnpm tauri build --target x86_64-pc-windows-msvc
