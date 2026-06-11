@@ -36,11 +36,17 @@ jobs:
         run: |
           python3 -c "import json; d=json.load(open('src-tauri/tauri.conf.json')); d['productName']='CC Switch Ollama'; json.dump(d, open('src-tauri/tauri.conf.json','w'), indent=2, ensure_ascii=False)"
 
+      - name: Remove signing keys
+        run: rm -f src-tauri/*.key src-tauri/*.pub
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build macOS
-        run: pnpm tauri build --target aarch64-apple-darwin
+      - name: Build macOS (skip signing)
+        run: pnpm tauri build --target aarch64-apple-darwin --bundles app,dmg
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ""
+          CI: "true"
 
       - name: Upload DMG
         uses: actions/upload-artifact@v4
@@ -74,15 +80,16 @@ jobs:
           targets: x86_64-pc-windows-msvc
 
       - name: Rename app
-        run: |
-          python -c "import json; d=json.load(open('src-tauri/tauri.conf.json')); d['productName']='CC Switch Ollama'; json.dump(d, open('src-tauri/tauri.conf.json','w'), indent=2, ensure_ascii=False)"
-        shell: bash
+        run: node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));c.productName='CC Switch Ollama';fs.writeFileSync('src-tauri/tauri.conf.json',JSON.stringify(c,null,2))"
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
       - name: Build Windows
-        run: pnpm tauri build --target x86_64-pc-windows-msvc
+        run: pnpm tauri build --target x86_64-pc-windows-msvc --bundles msi
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ""
+          CI: "true"
 
       - name: Upload MSI
         uses: actions/upload-artifact@v4
