@@ -1,0 +1,126 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    name: macOS Apple Silicon
+    runs-on: macos-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          repository: XiaoBinGan/cc-switch
+          ref: feat/ollama-codex-proxy
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rename app
+        run: |
+          cat src-tauri/tauri.conf.json | python3 -c "
+          import sys, json
+          d = json.load(sys.stdin)
+          d['productName'] = 'CC Switch Ollama'
+          d['identifier'] = 'com.ccswitch.ollama'
+          print(json.dumps(d, indent=2, ensure_ascii=False))
+          " > t.json && mv t.json src-tauri/tauri.conf.json
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build macOS
+        run: pnpm tauri build --target aarch64-apple-darwin
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: CC-Switch-Ollama-macOS
+          path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+
+  build-windows:
+    name: Windows x64
+    runs-on: windows-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          repository: XiaoBinGan/cc-switch
+          ref: feat/ollama-codex-proxy
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rename app
+        run: |
+          python -c "
+          import json
+          with open('src-tauri/tauri.conf.json') as f:
+              d = json.load(f)
+          d['productName'] = 'CC Switch Ollama'
+          d['identifier'] = 'com.ccswitch.ollama'
+          with open('t.json','w') as f:
+              json.dump(d, f, indent=2, ensure_ascii=False)
+          "
+          move /Y t.json src-tauri\tauri.conf.json
+        shell: cmd
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Windows
+        run: pnpm tauri build --target x86_64-pc-windows-msvc
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: CC-Switch-Ollama-Windows
+          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+
+  release:
+    name: Create Release
+    needs: [build-macos, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "CC Switch Ollama ${{ github.ref_name }}"
+          files: dist/**/*
+          generate_release_notes: true
